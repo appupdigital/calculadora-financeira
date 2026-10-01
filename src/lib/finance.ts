@@ -101,3 +101,88 @@ export function calcularIndices(
   const ce = (pc / (pc + pnc)) * 100;
   return { lg, lc, ls, pct, ce };
 }
+
+export interface ResultadoLucratividade {
+  atm: number;
+  ga: number;
+  rsv: number;
+  roa: number;
+  plma: number;
+  roe: number;
+  tempoDobrar: number;
+}
+
+export function calcularLucratividade(
+  vl: number,
+  ll: number,
+  atInicial: number,
+  atFinal: number,
+  plInicial: number,
+  plFinal: number
+): ResultadoLucratividade {
+  const atm = (atInicial + atFinal) / 2;
+  const ga = vl / atm;
+  const rsv = (ll / vl) * 100;
+  const roa = ga * rsv;
+  const plma = (plInicial + plFinal - ll) / 2;
+  const roe = (ll / plma) * 100;
+  const tempoDobrar = 72 / roa;
+  return { atm, ga, rsv, roa, plma, roe, tempoDobrar };
+}
+
+export interface ResultadoPrazosCiclos {
+  estm: number;
+  pmre: number;
+  drm: number;
+  pmrv: number;
+  compras: number;
+  fornm: number;
+  pmpc: number;
+  co: number;
+  cf: number;
+}
+
+export function calcularPrazosCiclos(
+  estoqueInicial: number,
+  estoqueFinal: number,
+  cpv: number,
+  drInicial: number,
+  drFinal: number,
+  vendasBrutas: number,
+  fornInicial: number,
+  fornFinal: number,
+  dp: number
+): ResultadoPrazosCiclos {
+  const estm = (estoqueInicial + estoqueFinal) / 2;
+  const pmre = (estm / cpv) * dp;
+
+  const drm = (drInicial + drFinal) / 2;
+  const pmrv = (drm / vendasBrutas) * dp;
+
+  const compras = cpv + estoqueFinal - estoqueInicial;
+  const fornm = (fornInicial + fornFinal) / 2;
+  const pmpc = (fornm / compras) * dp;
+
+  const co = pmre + pmrv;
+  const cf = co - pmpc;
+
+  return { estm, pmre, drm, pmrv, compras, fornm, pmpc, co, cf };
+}
+
+export interface ResultadoJuros {
+  montanteSimples: number;
+  jurosSimples: number;
+  montanteComposto: number;
+  jurosCompostos: number;
+}
+
+export function calcularJuros(pv: number, taxa: number, n: number): ResultadoJuros {
+  const montanteSimples = pv * (1 + taxa * n);
+  const montanteComposto = pv * Math.pow(1 + taxa, n);
+  return {
+    montanteSimples,
+    jurosSimples: montanteSimples - pv,
+    montanteComposto,
+    jurosCompostos: montanteComposto - pv,
+  };
+}
