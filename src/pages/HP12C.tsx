@@ -85,7 +85,7 @@ export default function HP12CPage() {
               <b>1,5% ao mês</b>, partindo de PV = 0?
             </p>
             <ol className="text-sm text-slate-700 dark:text-slate-300 space-y-1 list-decimal list-inside font-mono">
-              <li>f CLEAR FIN <span className="font-sans text-slate-500">(limpa as financeiras)</span></li>
+              <li>g CLx <span className="font-sans text-slate-500">(limpa as financeiras: pressione g, depois CLx)</span></li>
               <li>24 → n</li>
               <li>1.5 → i</li>
               <li>0 → PV</li>
@@ -99,18 +99,48 @@ export default function HP12CPage() {
 
           <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-5">
             <h2 className="font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-2">
+              <span>🟠🔵</span> As teclas f (laranja) e g (azul)
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
+              Cada tecla preta tem até duas funções extras impressas acima dela: uma em{" "}
+              <b className="text-amber-600 dark:text-amber-500">laranja</b> e outra em{" "}
+              <b className="text-sky-600 dark:text-sky-400">azul</b>. Pressione primeiro{" "}
+              <b className="font-mono">f</b> ou <b className="font-mono">g</b> e, em seguida, a tecla da
+              função desejada.
+            </p>
+            <ul className="space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
+              <li><b className="font-mono">g</b> então <b className="font-mono">7</b> — ativa o modo <b>BEGIN</b> (prestações no início do período)</li>
+              <li><b className="font-mono">g</b> então <b className="font-mono">8</b> — ativa o modo <b>END</b> (prestações no fim do período)</li>
+              <li><b className="font-mono">g</b> então <b className="font-mono">n</b> (12×) — multiplica X por 12 e guarda em n (anos → meses)</li>
+              <li><b className="font-mono">g</b> então <b className="font-mono">i</b> (12÷) — divide X por 12 e guarda em i (taxa anual → mensal)</li>
+              <li><b className="font-mono">g</b> então <b className="font-mono">CLx</b> — zera só os registradores financeiros (n, i, PV, PMT, FV)</li>
+              <li><b className="font-mono">f</b> então <b className="font-mono">CLx</b> — zera só os registradores de memória (R0–R9)</li>
+              <li><b className="font-mono">g</b> então <b className="font-mono">ENTER</b> (LSTx) — recupera o valor de X de antes da última operação</li>
+            </ul>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
+              As demais funções em laranja/azul (AMORT, bônus, depreciação, estatísticas, programação...)
+              aparecem só para deixar o visual fiel à calculadora original — nesta simulação elas não fazem
+              cálculo, só mostram um aviso.
+            </p>
+          </section>
+
+          <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-5">
+            <h2 className="font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-2">
               <span>🔑</span> Outras teclas úteis
             </h2>
             <ul className="space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
               <li><b className="font-mono">CHS</b> — troca o sinal do número (+/−)</li>
               <li><b className="font-mono">CLx</b> — zera só o visor (X), sem mexer no resto da pilha</li>
-              <li><b className="font-mono">AC</b> — zera tudo: pilha, memórias e registradores financeiros</li>
+              <li><b className="font-mono">ON</b> — reinicia tudo: pilha, memórias e registradores financeiros</li>
               <li><b className="font-mono">STO</b> + dígito — guarda o valor de X num dos 10 registradores de memória (R0–R9)</li>
-              <li><b className="font-mono">RCL</b> + dígito (ou n/i/PV/PMT/FV) — traz um valor guardado de volta para X</li>
+              <li><b className="font-mono">RCL</b> + dígito — traz um valor guardado de volta para X</li>
               <li><b className="font-mono">%</b> — calcula X% de Y (ex.: 200 ENTER 10 % → 20, que é 10% de 200)</li>
+              <li><b className="font-mono">%T</b> — calcula que porcentagem X representa de Y</li>
               <li><b className="font-mono">Δ%</b> — variação percentual entre Y e X</li>
               <li><b className="font-mono">1/x</b> — inverso do número no visor</li>
-              <li><b className="font-mono">g BEG/END</b> — alterna entre prestações pagas no início (BEGIN) ou no fim (END) de cada período</li>
+              <li><b className="font-mono">yˣ</b> — eleva Y à potência X</li>
+              <li><b className="font-mono">R↓</b> — gira a pilha para baixo (útil para ver os valores em Y, Z, T)</li>
+              <li><b className="font-mono">x≷y</b> — troca os valores de X e Y</li>
             </ul>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
               Dica: se você acabou de calcular um resultado e quiser usá-lo para alimentar outra variável
