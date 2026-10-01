@@ -1,0 +1,14 @@
+{
+  "name": "Calculadora Financeira",
+  "short_name": "Calc. Financeira",
+  "description": "Calculadora de VPL, TIR, Payback, Índice de Lucratividade e índices financeiros, com todas as fórmulas explicadas.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#7c3aed",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

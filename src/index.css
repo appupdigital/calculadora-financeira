@@ -6,11 +6,40 @@
 
 html, body, #root {
   min-height: 100%;
+  min-height: 100dvh;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
 }
 
 body {
   margin: 0;
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+button, a {
+  touch-action: manipulation;
+}
+
+/* Evita zoom automático do iOS ao focar um input (exige fonte >= 16px) */
+input, select, textarea {
+  font-size: 16px;
+}
+
+/* Áreas seguras do iPhone (notch / home indicator) */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-x {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 ::selection {

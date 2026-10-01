@@ -1,0 +1,25 @@
+export default function CalculatorIcon({ className = "w-7 h-7" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+      <defs>
+        <linearGradient id="calc-icon-bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#a855f7" />
+          <stop offset="100%" stopColor="#6d28d9" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="16" fill="url(#calc-icon-bg)" />
+      <rect x="16" y="10" width="32" height="44" rx="6" fill="#ffffff" fillOpacity="0.96" />
+      <rect x="20" y="15" width="24" height="11" rx="2.5" fill="#4c1d95" />
+      <g fill="#7c3aed">
+        <rect x="20" y="30" width="6.5" height="6.5" rx="1.6" />
+        <rect x="28.75" y="30" width="6.5" height="6.5" rx="1.6" />
+        <rect x="37.5" y="30" width="6.5" height="6.5" rx="1.6" />
+        <rect x="20" y="38.5" width="6.5" height="6.5" rx="1.6" />
+        <rect x="28.75" y="38.5" width="6.5" height="6.5" rx="1.6" />
+        <rect x="37.5" y="38.5" width="6.5" height="6.5" rx="1.6" />
+        <rect x="20" y="47" width="15.25" height="6.5" rx="1.6" />
+        <rect x="37.5" y="47" width="6.5" height="6.5" rx="1.6" fill="#22c55e" />
+      </g>
+    </svg>
+  );
+}

@@ -47,13 +47,13 @@ function Botoes({ onCalcular, onLimpar }: { onCalcular: () => void; onLimpar: ()
     <div className="flex gap-2 mb-5">
       <button
         onClick={onCalcular}
-        className="px-5 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-sm font-semibold transition shadow-sm"
+        className="min-h-11 flex-1 sm:flex-none px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-sm font-semibold transition shadow-sm"
       >
         Calcular
       </button>
       <button
         onClick={onLimpar}
-        className="px-5 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+        className="min-h-11 flex-1 sm:flex-none px-5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition"
       >
         Limpar
       </button>
