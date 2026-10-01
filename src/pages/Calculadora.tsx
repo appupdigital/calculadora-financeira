@@ -1,15 +1,18 @@
 import { useState, type ReactNode } from "react";
 import {
+  calcularConversaoTaxa,
   calcularIndices,
   calcularInvestimento,
   calcularJuros,
   calcularLucratividade,
   calcularPrazosCiclos,
   fmt,
+  type UnidadeTaxa,
 } from "../lib/finance";
 import { digitsToNumber } from "../lib/mask";
 import MaskedInput from "../components/MaskedInput";
 import PeriodoInput, { type UnidadePeriodo } from "../components/PeriodoInput";
+import TaxaInput from "../components/TaxaInput";
 
 function OutBox({
   label,
@@ -85,8 +88,10 @@ const vazios6 = ["", "", "", "", "", ""];
 function CalculadoraInvestimento() {
   const [cf0, setCf0] = useState("");
   const [taxa, setTaxa] = useState("");
+  const [unidadeTaxa, setUnidadeTaxa] = useState<UnidadeTaxa>("ano");
   const [fluxos, setFluxos] = useState(vazios6);
   const [resultado, setResultado] = useState<ReturnType<typeof calcularInvestimento> | null>(null);
+  const [kAnualPct, setKAnualPct] = useState(0);
   const [erro, setErro] = useState("");
 
   function atualizarFluxo(i: number, v: string) {
@@ -95,9 +100,16 @@ function CalculadoraInvestimento() {
     setFluxos(novo);
   }
 
+  // Os fluxos CF1..CF6 representam períodos anuais, então a taxa é sempre
+  // convertida para o equivalente ao ano antes de calcular.
+  function taxaAnual(): number {
+    const t = digitsToNumber(taxa) / 100;
+    return unidadeTaxa === "mes" ? Math.pow(1 + t, 12) - 1 : t;
+  }
+
   function calcular() {
     const cf0Num = digitsToNumber(cf0);
-    const k = digitsToNumber(taxa) / 100;
+    const k = taxaAnual();
     const vals = fluxos.filter((v) => v !== "" && digitsToNumber(v) !== 0).map((v) => digitsToNumber(v));
     if (vals.length === 0) {
       setErro("Informe ao menos 1 fluxo de caixa.");
@@ -105,12 +117,14 @@ function CalculadoraInvestimento() {
       return;
     }
     setErro("");
+    setKAnualPct(k * 100);
     setResultado(calcularInvestimento(cf0Num, k, vals));
   }
 
   function limpar() {
     setCf0("");
     setTaxa("");
+    setUnidadeTaxa("ano");
     setFluxos(vazios6);
     setResultado(null);
     setErro("");
@@ -119,11 +133,11 @@ function CalculadoraInvestimento() {
   return (
     <CardCalc
       titulo="VPL · TIR · Payback · Índice de Lucratividade"
-      descricao="Informe o investimento inicial, a taxa mínima de atratividade (k) e até 6 fluxos de caixa futuros."
+      descricao="Informe o investimento inicial, a taxa mínima de atratividade (k) e até 6 fluxos de caixa futuros (cada CF representa um ano)."
     >
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
         <MaskedInput label="Investimento inicial (CF₀)" digits={cf0} onChange={setCf0} prefixo="R$" />
-        <MaskedInput label="Taxa k (a.a.)" digits={taxa} onChange={setTaxa} sufixo="%" />
+        <TaxaInput label="Taxa k" digits={taxa} onChange={setTaxa} unidade={unidadeTaxa} onUnidadeChange={setUnidadeTaxa} />
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
@@ -140,7 +154,7 @@ function CalculadoraInvestimento() {
         <>
           <div className="grid sm:grid-cols-3 gap-3 mb-4">
             <OutBox
-              label={`VPL (a ${digitsToNumber(taxa).toFixed(2)}% a.a.)`}
+              label={`VPL (a ${kAnualPct.toFixed(2)}% a.a.)`}
               valor={`R$ ${fmt(resultado.vpl)}`}
               kind={resultado.vpl >= 0 ? "good" : "bad"}
               destaque
@@ -148,7 +162,7 @@ function CalculadoraInvestimento() {
             <OutBox
               label="TIR"
               valor={resultado.tir !== null ? `${(resultado.tir * 100).toFixed(2)}%` : "sem raiz no intervalo"}
-              kind={resultado.tir !== null && resultado.tir >= digitsToNumber(taxa) / 100 ? "good" : "bad"}
+              kind={resultado.tir !== null && resultado.tir >= kAnualPct / 100 ? "good" : "bad"}
               destaque
             />
             <OutBox
@@ -395,19 +409,22 @@ function CalculadoraPrazosCiclos() {
 function CalculadoraJuros() {
   const [pv, setPv] = useState("");
   const [taxa, setTaxa] = useState("");
+  const [unidadeTaxa, setUnidadeTaxa] = useState<UnidadeTaxa>("ano");
   const [n, setN] = useState("");
   const [unidade, setUnidade] = useState<UnidadePeriodo>("anos");
   const [resultado, setResultado] = useState<ReturnType<typeof calcularJuros> | null>(null);
 
   function calcular() {
     const periodos = digitsToNumber(n, 0);
-    const periodosEmAnos = unidade === "meses" ? periodos / 12 : periodos;
-    setResultado(calcularJuros(digitsToNumber(pv), digitsToNumber(taxa) / 100, periodosEmAnos));
+    setResultado(
+      calcularJuros(digitsToNumber(pv), digitsToNumber(taxa) / 100, unidadeTaxa, periodos, unidade)
+    );
   }
 
   function limpar() {
     setPv("");
     setTaxa("");
+    setUnidadeTaxa("ano");
     setN("");
     setUnidade("anos");
     setResultado(null);
@@ -420,7 +437,7 @@ function CalculadoraJuros() {
     >
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
         <MaskedInput label="Capital inicial (PV)" digits={pv} onChange={setPv} prefixo="R$" />
-        <MaskedInput label="Taxa (i ao ano)" digits={taxa} onChange={setTaxa} sufixo="%" />
+        <TaxaInput label="Taxa (i)" digits={taxa} onChange={setTaxa} unidade={unidadeTaxa} onUnidadeChange={setUnidadeTaxa} />
         <PeriodoInput
           label="Número de períodos (n)"
           digits={n}
@@ -444,12 +461,68 @@ function CalculadoraJuros() {
   );
 }
 
+function CalculadoraTaxas() {
+  const [taxa, setTaxa] = useState("");
+  const [origem, setOrigem] = useState<UnidadeTaxa>("mes");
+  const [resultado, setResultado] = useState<ReturnType<typeof calcularConversaoTaxa> | null>(null);
+
+  function calcular() {
+    setResultado(calcularConversaoTaxa(digitsToNumber(taxa) / 100, origem));
+  }
+
+  function limpar() {
+    setTaxa("");
+    setOrigem("mes");
+    setResultado(null);
+  }
+
+  const destino = origem === "mes" ? "ano" : "mes";
+  const rotuloOrigem = origem === "mes" ? "ao mês" : "ao ano";
+  const rotuloDestino = destino === "mes" ? "ao mês" : "ao ano";
+
+  return (
+    <CardCalc
+      titulo="Calculadora de Taxas"
+      descricao="Converta uma taxa de juros entre mês e ano, pela forma proporcional (juros simples) e pela equivalente (juros compostos)."
+    >
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+        <TaxaInput label="Taxa de partida" digits={taxa} onChange={setTaxa} unidade={origem} onUnidadeChange={setOrigem} />
+      </div>
+
+      <Botoes onCalcular={calcular} onLimpar={limpar} />
+
+      {resultado && (
+        <>
+          <div className="grid sm:grid-cols-2 gap-3 mb-4">
+            <OutBox
+              label={`Taxa proporcional (${rotuloDestino}, juros simples)`}
+              valor={`${(resultado.proporcional * 100).toFixed(3)}%`}
+              kind="info"
+            />
+            <OutBox
+              label={`Taxa equivalente (${rotuloDestino}, juros compostos)`}
+              valor={`${(resultado.equivalente * 100).toFixed(3)}%`}
+              kind="good"
+              destaque
+            />
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Convertendo {digitsToNumber(taxa).toFixed(2)}% {rotuloOrigem} para {rotuloDestino}. A proporcional é usada em
+            juros simples (multiplica/divide por 12); a equivalente é usada em juros compostos (potência de 12).
+          </p>
+        </>
+      )}
+    </CardCalc>
+  );
+}
+
 const modelos = [
   { id: "investimento", titulo: "VPL · TIR · Payback · IL", icone: "📈", Componente: CalculadoraInvestimento },
   { id: "liquidez", titulo: "Liquidez e Endividamento", icone: "💧", Componente: CalculadoraIndicesLiquidez },
   { id: "lucratividade", titulo: "Lucratividade (Du Pont)", icone: "💰", Componente: CalculadoraLucratividade },
   { id: "prazos", titulo: "Prazos Médios e Ciclos", icone: "🔄", Componente: CalculadoraPrazosCiclos },
   { id: "juros", titulo: "Juros Simples × Compostos", icone: "🧮", Componente: CalculadoraJuros },
+  { id: "taxas", titulo: "Conversor de Taxas", icone: "🔁", Componente: CalculadoraTaxas },
 ] as const;
 
 export default function Calculadora() {
@@ -465,7 +538,7 @@ export default function Calculadora() {
         </h1>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {modelos.map((m) => (
           <button
             key={m.id}

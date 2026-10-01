@@ -176,13 +176,49 @@ export interface ResultadoJuros {
   jurosCompostos: number;
 }
 
-export function calcularJuros(pv: number, taxa: number, n: number): ResultadoJuros {
-  const montanteSimples = pv * (1 + taxa * n);
-  const montanteComposto = pv * Math.pow(1 + taxa, n);
+export type UnidadeTaxa = "mes" | "ano";
+export type UnidadePeriodo = "meses" | "anos";
+
+export function calcularJuros(
+  pv: number,
+  taxa: number,
+  taxaUnidade: UnidadeTaxa,
+  n: number,
+  nUnidade: UnidadePeriodo
+): ResultadoJuros {
+  const nMeses = nUnidade === "anos" ? n * 12 : n;
+
+  // Juros simples: conversão de taxa proporcional (linear)
+  const taxaMesSimples = taxaUnidade === "ano" ? taxa / 12 : taxa;
+  const montanteSimples = pv * (1 + taxaMesSimples * nMeses);
+
+  // Juros compostos: conversão de taxa equivalente (geométrica)
+  const taxaMesComposta = taxaUnidade === "ano" ? Math.pow(1 + taxa, 1 / 12) - 1 : taxa;
+  const montanteComposto = pv * Math.pow(1 + taxaMesComposta, nMeses);
+
   return {
     montanteSimples,
     jurosSimples: montanteSimples - pv,
     montanteComposto,
     jurosCompostos: montanteComposto - pv,
+  };
+}
+
+export interface ResultadoConversaoTaxa {
+  proporcional: number;
+  equivalente: number;
+}
+
+/** Converte uma taxa de "mes" para "ano" ou de "ano" para "mes". */
+export function calcularConversaoTaxa(taxa: number, origem: UnidadeTaxa): ResultadoConversaoTaxa {
+  if (origem === "mes") {
+    return {
+      proporcional: taxa * 12,
+      equivalente: Math.pow(1 + taxa, 12) - 1,
+    };
+  }
+  return {
+    proporcional: taxa / 12,
+    equivalente: Math.pow(1 + taxa, 1 / 12) - 1,
   };
 }
