@@ -1,4 +1,5 @@
 import type { Formula } from "../data/formulas";
+import FormulaText from "./FormulaText";
 
 function regraClasses(tipo?: "boa" | "ruim" | "info") {
   if (tipo === "boa") return "text-emerald-600 dark:text-emerald-400";
@@ -28,13 +29,15 @@ export default function FormulaCard({ f }: { f: Formula }) {
           </span>
         )}
       </div>
-      <div className="font-mono text-sm sm:text-[15px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 mb-3 overflow-x-auto whitespace-pre text-slate-800 dark:text-slate-200">
-        {f.formula}
+      <div className="font-mono text-[13px] leading-relaxed sm:text-[15px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 mb-3 whitespace-pre-wrap break-words text-slate-800 dark:text-slate-200">
+        <FormulaText texto={f.formula} />
       </div>
       <ul className="space-y-1 mb-3">
         {f.vars.map((v) => (
           <li key={v.label} className="text-sm text-slate-600 dark:text-slate-300">
-            <b className="text-slate-900 dark:text-slate-100 font-mono">{v.label}</b>{" "}
+            <b className="text-slate-900 dark:text-slate-100 font-mono">
+              <FormulaText texto={v.label} />
+            </b>{" "}
             <span className="text-slate-500 dark:text-slate-400">= {v.desc}</span>
           </li>
         ))}
