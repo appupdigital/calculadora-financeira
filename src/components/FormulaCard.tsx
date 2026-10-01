@@ -29,9 +29,18 @@ export default function FormulaCard({ f }: { f: Formula }) {
           </span>
         )}
       </div>
+
+      {f.oQueE && (
+        <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{f.oQueE}</p>
+      )}
+
       <div className="font-mono text-[13px] leading-relaxed sm:text-[15px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 mb-3 whitespace-pre-wrap break-words text-slate-800 dark:text-slate-200">
         <FormulaText texto={f.formula} />
       </div>
+
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1.5">
+        Variáveis
+      </p>
       <ul className="space-y-1 mb-3">
         {f.vars.map((v) => (
           <li key={v.label} className="text-sm text-slate-600 dark:text-slate-300">
@@ -42,8 +51,18 @@ export default function FormulaCard({ f }: { f: Formula }) {
           </li>
         ))}
       </ul>
+
       {f.regra && (
-        <div className={"text-xs font-medium " + regraClasses(f.regraTipo)}>{f.regra}</div>
+        <div className={"text-xs font-medium mb-3 " + regraClasses(f.regraTipo)}>{f.regra}</div>
+      )}
+
+      {f.comoLer && (
+        <div className="rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900 px-3 py-2.5">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-violet-600 dark:text-violet-400 mb-1">
+            Como ler o resultado
+          </p>
+          <p className="text-sm text-slate-700 dark:text-slate-300">{f.comoLer}</p>
+        </div>
       )}
     </div>
   );

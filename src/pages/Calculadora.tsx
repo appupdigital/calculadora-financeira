@@ -65,6 +65,35 @@ function Botoes({ onCalcular, onLimpar }: { onCalcular: () => void; onLimpar: ()
   );
 }
 
+function Legenda({ itens }: { itens: { label: string; desc: string }[] }) {
+  return (
+    <details className="mb-5 group">
+      <summary className="cursor-pointer select-none list-none text-xs font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1">
+        <span>O que significa cada campo?</span>
+        <span className="inline-block transition-transform group-open:rotate-180">⌄</span>
+      </summary>
+      <ul className="mt-2 space-y-1 pl-0.5 border-l-2 border-violet-100 dark:border-violet-900">
+        {itens.map((it) => (
+          <li key={it.label} className="text-xs text-slate-500 dark:text-slate-400 pl-2.5">
+            <b className="text-slate-700 dark:text-slate-300 font-mono">{it.label}</b> — {it.desc}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+function Explicacao({ children }: { children: ReactNode }) {
+  return (
+    <div className="mt-4 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900 px-3.5 py-3 space-y-2">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-violet-600 dark:text-violet-400">
+        O que esse resultado significa
+      </p>
+      {children}
+    </div>
+  );
+}
+
 function CardCalc({
   titulo,
   descricao,
@@ -146,6 +175,14 @@ function CalculadoraInvestimento() {
         ))}
       </div>
 
+      <Legenda
+        itens={[
+          { label: "CF₀ (Investimento inicial)", desc: "quanto você gasta hoje pra começar o projeto. Entra automaticamente como valor negativo na conta." },
+          { label: "Taxa k", desc: "a taxa mínima de retorno que você exige do projeto (custo de capital / taxa de atratividade). É contra ela que o VPL e a TIR são julgados." },
+          { label: "CF1 a CF6", desc: "o dinheiro que o projeto deve gerar em cada ano seguinte (ano 1, ano 2...). Deixe em branco os anos que não existirem." },
+        ]}
+      />
+
       <Botoes onCalcular={calcular} onLimpar={limpar} />
 
       {erro && <div className="text-sm text-rose-600 dark:text-rose-400 mb-4">{erro}</div>}
@@ -184,10 +221,32 @@ function CalculadoraInvestimento() {
               kind="info"
             />
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Critério: VPL&gt;0 e TIR&gt;k → aceitar · IL&gt;1 → aceitar (equivale a VPL&gt;0). TIR encontrada por
-            bisseção numérica (aproximação).
-          </p>
+
+          <Explicacao>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>VPL de R$ {fmt(resultado.vpl)}</b>: {resultado.vpl >= 0
+                ? `depois de recuperar o investimento e render os ${kAnualPct.toFixed(2)}% a.a. exigidos, ainda sobram R$ ${fmt(Math.abs(resultado.vpl))} em dinheiro de hoje. Como o VPL é positivo, o projeto vale a pena.`
+                : `o projeto nem cobre a taxa mínima de ${kAnualPct.toFixed(2)}% a.a. exigida — faltam R$ ${fmt(Math.abs(resultado.vpl))} em valor de hoje. Como o VPL é negativo, o projeto deve ser rejeitado.`}
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>TIR</b>: {resultado.tir !== null
+                ? `o projeto rende, na prática, ${(resultado.tir * 100).toFixed(2)}% ao ano. Como isso é ${resultado.tir >= kAnualPct / 100 ? "maior" : "menor"} que a taxa k (${kAnualPct.toFixed(2)}%), o critério da TIR também manda ${resultado.tir >= kAnualPct / 100 ? "aceitar" : "rejeitar"} o projeto.`
+                : "não foi encontrada uma TIR dentro da faixa de -99% a 500% — os fluxos informados não cruzam o VPL zero nesse intervalo."}
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>Índice de Lucratividade de {resultado.il.toFixed(3)}</b>: pra cada R$1,00 investido, o projeto devolve R${" "}
+              {resultado.il.toFixed(2)} em valor presente — {resultado.il >= 1
+                ? `um ganho líquido de R$ ${(resultado.il - 1).toFixed(2)} por real investido.`
+                : `um prejuízo de R$ ${(1 - resultado.il).toFixed(2)} por real investido em valor presente.`}
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>Payback</b>: sem descontar nada, o investimento se paga em{" "}
+              {resultado.paybackSimples !== null ? `${resultado.paybackSimples.toFixed(2)} anos` : "um prazo que os fluxos informados não alcançam"}.
+              Trazendo os fluxos a valor presente (mais realista), o prazo sobe para{" "}
+              {resultado.paybackDescontado !== null ? `${resultado.paybackDescontado.toFixed(2)} anos` : "além do período informado"} — é
+              normal o descontado ser maior, porque cada real recebido no futuro "pesa menos" ao ser trazido pra hoje.
+            </p>
+          </Explicacao>
         </>
       )}
     </CardCalc>
@@ -244,20 +303,56 @@ function CalculadoraIndicesLiquidez() {
         <MaskedInput label="Patrimônio Líquido (PL)" digits={pl} onChange={setPl} prefixo="R$" />
       </div>
 
+      <Legenda
+        itens={[
+          { label: "AC", desc: "Ativo Circulante — bens e direitos que viram dinheiro em até 1 ano (caixa, estoque, contas a receber)." },
+          { label: "RLP", desc: "Realizável a Longo Prazo — direitos a receber que só viram dinheiro depois de 1 ano." },
+          { label: "DISP", desc: "Disponibilidades — caixa, bancos e aplicações financeiras (o dinheiro mais líquido que existe)." },
+          { label: "DRL", desc: "Duplicatas a Receber Líquidas — o que os clientes devem, já descontada a provisão de calote." },
+          { label: "PC", desc: "Passivo Circulante — dívidas que vencem em até 1 ano." },
+          { label: "PNC", desc: "Passivo Não Circulante — dívidas que vencem depois de 1 ano." },
+          { label: "PL", desc: "Patrimônio Líquido — o que sobra pros sócios depois de pagar todas as dívidas." },
+        ]}
+      />
+
       <Botoes onCalcular={calcular} onLimpar={limpar} />
 
       {resultado && (
-        <div className="grid sm:grid-cols-3 gap-3">
-          <OutBox label="Liquidez Geral (LG)" valor={resultado.lg.toFixed(2)} kind={resultado.lg >= 1 ? "good" : "bad"} destaque />
-          <OutBox label="Liquidez Corrente (LC)" valor={resultado.lc.toFixed(2)} kind={resultado.lc >= 1 ? "good" : "bad"} destaque />
-          <OutBox label="Liquidez Seca (LS)" valor={resultado.ls.toFixed(2)} kind={resultado.ls >= 1 ? "good" : "bad"} destaque />
-          <OutBox
-            label="Participação Cap. Terceiros (PCT)"
-            valor={`${resultado.pct.toFixed(1)}%`}
-            kind={resultado.pct <= 100 ? "good" : "bad"}
-          />
-          <OutBox label="Composição do Endividamento (CE)" valor={`${resultado.ce.toFixed(1)}%`} kind="info" />
-        </div>
+        <>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <OutBox label="Liquidez Geral (LG)" valor={resultado.lg.toFixed(2)} kind={resultado.lg >= 1 ? "good" : "bad"} destaque />
+            <OutBox label="Liquidez Corrente (LC)" valor={resultado.lc.toFixed(2)} kind={resultado.lc >= 1 ? "good" : "bad"} destaque />
+            <OutBox label="Liquidez Seca (LS)" valor={resultado.ls.toFixed(2)} kind={resultado.ls >= 1 ? "good" : "bad"} destaque />
+            <OutBox
+              label="Participação Cap. Terceiros (PCT)"
+              valor={`${resultado.pct.toFixed(1)}%`}
+              kind={resultado.pct <= 100 ? "good" : "bad"}
+            />
+            <OutBox label="Composição do Endividamento (CE)" valor={`${resultado.ce.toFixed(1)}%`} kind="info" />
+          </div>
+
+          <Explicacao>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>Liquidez Geral {resultado.lg.toFixed(2)}</b>: somando tudo (curto e longo prazo), a empresa tem R${" "}
+              {resultado.lg.toFixed(2)} em bens/direitos pra cada R$1,00 de dívida.{" "}
+              {resultado.lg >= 1 ? "Dá pra cobrir todo o passivo." : "Não dá pra cobrir todo o passivo só com o que a empresa tem — depende de gerar mais resultado."}
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>Liquidez Corrente {resultado.lc.toFixed(2)}</b>: olhando só pro curto prazo, pra cada R$1,00 de dívida que
+              vence em até 1 ano, a empresa tem R$ {resultado.lc.toFixed(2)} disponível.{" "}
+              {resultado.lc >= 1 ? "Boa folga pro próximo ano." : "Fica apertado pagar as contas de curto prazo — vale atenção."}
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>Liquidez Seca {resultado.ls.toFixed(2)}</b>: tirando o estoque da conta, a empresa cobre{" "}
+              {(resultado.ls * 100).toFixed(0)}% da dívida de curto prazo só com caixa e contas a receber.
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>PCT {resultado.pct.toFixed(1)}%</b>: pra cada R$1,00 de capital próprio, a empresa deve R${" "}
+              {(resultado.pct / 100).toFixed(2)} a terceiros. <b>CE {resultado.ce.toFixed(1)}%</b> dessa dívida total vence
+              no curto prazo — {resultado.ce >= 50 ? "mais da metade é urgente." : "menos da metade é urgente, o resto dá mais fôlego."}
+            </p>
+          </Explicacao>
+        </>
       )}
     </CardCalc>
   );
@@ -309,20 +404,56 @@ function CalculadoraLucratividade() {
         <MaskedInput label="PL final" digits={plFinal} onChange={setPlFinal} prefixo="R$" />
       </div>
 
+      <Legenda
+        itens={[
+          { label: "VL", desc: "Vendas Líquidas (Receita Líquida) do período, já sem impostos sobre venda e devoluções." },
+          { label: "LL", desc: "Lucro Líquido — o que sobrou depois de pagar tudo: custos, despesas e impostos." },
+          { label: "Ativo Total inicial/final", desc: "o total de bens e direitos da empresa no começo e no fim do período (saldo do Balanço)." },
+          { label: "PL inicial/final", desc: "o Patrimônio Líquido (capital próprio) no começo e no fim do período." },
+        ]}
+      />
+
       <Botoes onCalcular={calcular} onLimpar={limpar} />
 
       {resultado && (
-        <div className="grid sm:grid-cols-3 gap-3">
-          <OutBox label="Giro do Ativo (GA)" valor={resultado.ga.toFixed(2) + "x"} kind="info" />
-          <OutBox label="Retorno s/ Vendas (RSV)" valor={resultado.rsv.toFixed(2) + "%"} kind="info" />
-          <OutBox label="Retorno s/ Ativo (ROA)" valor={resultado.roa.toFixed(2) + "%"} kind="good" destaque />
-          <OutBox label="Retorno s/ PL (ROE)" valor={resultado.roe.toFixed(2) + "%"} kind="good" destaque />
-          <OutBox
-            label="Tempo p/ dobrar o Ativo (regra 72/ROA)"
-            valor={isFinite(resultado.tempoDobrar) ? resultado.tempoDobrar.toFixed(1) + " anos" : "—"}
-            kind="info"
-          />
-        </div>
+        <>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <OutBox label="Giro do Ativo (GA)" valor={resultado.ga.toFixed(2) + "x"} kind="info" />
+            <OutBox label="Retorno s/ Vendas (RSV)" valor={resultado.rsv.toFixed(2) + "%"} kind="info" />
+            <OutBox label="Retorno s/ Ativo (ROA)" valor={resultado.roa.toFixed(2) + "%"} kind="good" destaque />
+            <OutBox label="Retorno s/ PL (ROE)" valor={resultado.roe.toFixed(2) + "%"} kind="good" destaque />
+            <OutBox
+              label="Tempo p/ dobrar o Ativo (regra 72/ROA)"
+              valor={isFinite(resultado.tempoDobrar) ? resultado.tempoDobrar.toFixed(1) + " anos" : "—"}
+              kind="info"
+            />
+          </div>
+
+          <Explicacao>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>Giro do Ativo {resultado.ga.toFixed(2)}x</b>: pra cada R$1,00 de ativo, a empresa gerou R${" "}
+              {resultado.ga.toFixed(2)} em vendas no período. <b>Margem (RSV) {resultado.rsv.toFixed(2)}%</b>: de cada
+              R$100,00 vendidos, R$ {resultado.rsv.toFixed(2)} viraram lucro líquido.
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>ROA {resultado.roa.toFixed(2)}%</b>: juntando giro e margem (Método Du Pont), cada R$100,00 investidos em
+              ativos geraram R$ {resultado.roa.toFixed(2)} de lucro no período — essa é a eficiência da empresa usando tudo
+              que ela possui, não importa quem pagou a conta (sócio ou banco).
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>ROE {resultado.roe.toFixed(2)}%</b>: olhando só pro dinheiro do sócio, cada R$100,00 de capital próprio
+              investido renderam R$ {resultado.roe.toFixed(2)} no período. Vale comparar esse número com o que esse
+              dinheiro renderia numa aplicação de renda fixa — se o ROE for menor, o risco do negócio pode não estar
+              compensando.
+            </p>
+            {isFinite(resultado.tempoDobrar) && (
+              <p className="text-sm text-slate-700 dark:text-slate-300">
+                <b>Regra 72/ROA</b>: mantendo esse mesmo ROA reinvestido, o Ativo Total da empresa dobraria de tamanho em
+                aproximadamente {resultado.tempoDobrar.toFixed(1)} anos.
+              </p>
+            )}
+          </Explicacao>
+        </>
       )}
     </CardCalc>
   );
@@ -386,21 +517,50 @@ function CalculadoraPrazosCiclos() {
         <MaskedInput label="Dias do período (DP)" digits={dp} onChange={setDp} casas={0} />
       </div>
 
+      <Legenda
+        itens={[
+          { label: "Estoque inicial/final", desc: "o saldo de estoque no começo e no fim do período." },
+          { label: "CPV / CMV", desc: "Custo do Produto/Mercadoria Vendido — quanto custou (não o preço de venda) tudo que foi vendido no período." },
+          { label: "Duplicatas a Receber inicial/final", desc: "quanto os clientes deviam à empresa no começo e no fim do período." },
+          { label: "Vendas Brutas", desc: "Receita Bruta do período, antes de descontar impostos e devoluções." },
+          { label: "Fornecedores inicial/final", desc: "quanto a empresa devia aos fornecedores no começo e no fim do período." },
+          { label: "DP", desc: "Dias do Período: 360 ou 365 pra um ano, 90 pra um trimestre, 30 pra um mês." },
+        ]}
+      />
+
       <Botoes onCalcular={calcular} onLimpar={limpar} />
 
       {resultado && (
-        <div className="grid sm:grid-cols-3 gap-3">
-          <OutBox label="PMRE (rotação de estoques)" valor={resultado.pmre.toFixed(1) + " dias"} kind="info" />
-          <OutBox label="PMRV (recebimento de vendas)" valor={resultado.pmrv.toFixed(1) + " dias"} kind="info" />
-          <OutBox label="PMPC (pagamento a fornecedores)" valor={resultado.pmpc.toFixed(1) + " dias"} kind="info" />
-          <OutBox label="Ciclo Operacional (CO)" valor={resultado.co.toFixed(1) + " dias"} kind="good" destaque />
-          <OutBox
-            label="Ciclo Financeiro (CF)"
-            valor={resultado.cf.toFixed(1) + " dias"}
-            kind={resultado.cf <= 0 ? "good" : "bad"}
-            destaque
-          />
-        </div>
+        <>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <OutBox label="PMRE (rotação de estoques)" valor={resultado.pmre.toFixed(1) + " dias"} kind="info" />
+            <OutBox label="PMRV (recebimento de vendas)" valor={resultado.pmrv.toFixed(1) + " dias"} kind="info" />
+            <OutBox label="PMPC (pagamento a fornecedores)" valor={resultado.pmpc.toFixed(1) + " dias"} kind="info" />
+            <OutBox label="Ciclo Operacional (CO)" valor={resultado.co.toFixed(1) + " dias"} kind="good" destaque />
+            <OutBox
+              label="Ciclo Financeiro (CF)"
+              valor={resultado.cf.toFixed(1) + " dias"}
+              kind={resultado.cf <= 0 ? "good" : "bad"}
+              destaque
+            />
+          </div>
+
+          <Explicacao>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Em média, a mercadoria fica <b>{resultado.pmre.toFixed(0)} dias</b> parada no estoque (PMRE) antes de ser
+              vendida, e depois de vendida a empresa ainda demora <b>{resultado.pmrv.toFixed(0)} dias</b> pra receber o
+              dinheiro do cliente (PMRV). Do outro lado, ela tem <b>{resultado.pmpc.toFixed(0)} dias</b> de prazo pra pagar
+              o fornecedor (PMPC).
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              <b>Ciclo Operacional de {resultado.co.toFixed(0)} dias</b>: é o tempo total da compra até o dinheiro cair na
+              conta. <b>Ciclo Financeiro de {resultado.cf.toFixed(0)} dias</b>:{" "}
+              {resultado.cf <= 0
+                ? "como o fornecedor dá mais prazo do que o ciclo operacional inteiro, a empresa opera praticamente sem precisar de capital de giro próprio — ótima posição."
+                : `é quantos dias a empresa precisa bancar com dinheiro próprio, porque já paga o fornecedor antes de receber do cliente. Quanto menor esse número, menos capital de giro a empresa precisa imobilizar.`}
+            </p>
+          </Explicacao>
+        </>
       )}
     </CardCalc>
   );
@@ -447,15 +607,42 @@ function CalculadoraJuros() {
         />
       </div>
 
+      <Legenda
+        itens={[
+          { label: "PV", desc: "Capital inicial (Present Value) — o valor que você está aplicando ou emprestando hoje." },
+          { label: "Taxa (i)", desc: "a taxa de juros do período, ao mês ou ao ano (você escolhe a unidade)." },
+          { label: "n", desc: "por quanto tempo o dinheiro fica aplicado — em meses ou anos (você escolhe a unidade)." },
+        ]}
+      />
+
       <Botoes onCalcular={calcular} onLimpar={limpar} />
 
       {resultado && (
-        <div className="grid sm:grid-cols-2 gap-3">
-          <OutBox label="Montante (juros simples)" valor={`R$ ${fmt(resultado.montanteSimples)}`} kind="info" />
-          <OutBox label="Montante (juros compostos)" valor={`R$ ${fmt(resultado.montanteComposto)}`} kind="good" destaque />
-          <OutBox label="Juros ganhos (simples)" valor={`R$ ${fmt(resultado.jurosSimples)}`} kind="info" />
-          <OutBox label="Juros ganhos (compostos)" valor={`R$ ${fmt(resultado.jurosCompostos)}`} kind="good" destaque />
-        </div>
+        <>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <OutBox label="Montante (juros simples)" valor={`R$ ${fmt(resultado.montanteSimples)}`} kind="info" />
+            <OutBox label="Montante (juros compostos)" valor={`R$ ${fmt(resultado.montanteComposto)}`} kind="good" destaque />
+            <OutBox label="Juros ganhos (simples)" valor={`R$ ${fmt(resultado.jurosSimples)}`} kind="info" />
+            <OutBox label="Juros ganhos (compostos)" valor={`R$ ${fmt(resultado.jurosCompostos)}`} kind="good" destaque />
+          </div>
+
+          <Explicacao>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              No juros simples, os juros incidem sempre sobre o capital inicial — por isso o montante cresce em linha reta,
+              terminando em <b>R$ {fmt(resultado.montanteSimples)}</b> (ganho de R$ {fmt(resultado.jurosSimples)}).
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              No juros compostos, os juros incidem sobre o capital + os juros já ganhos antes ("juros sobre juros") — por
+              isso o montante cresce mais rápido, terminando em <b>R$ {fmt(resultado.montanteComposto)}</b> (ganho de R${" "}
+              {fmt(resultado.jurosCompostos)}).
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Nesse período, a diferença entre as duas formas de render é de{" "}
+              <b>R$ {fmt(resultado.montanteComposto - resultado.montanteSimples)}</b> a mais no composto — é esse efeito
+              "bola de neve" que faz toda a diferença em prazos longos.
+            </p>
+          </Explicacao>
+        </>
       )}
     </CardCalc>
   );
@@ -488,6 +675,14 @@ function CalculadoraTaxas() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
         <TaxaInput label="Taxa de partida" digits={taxa} onChange={setTaxa} unidade={origem} onUnidadeChange={setOrigem} />
       </div>
+
+      <Legenda
+        itens={[
+          { label: "Taxa de partida", desc: "a taxa que você já tem (ex: uma taxa mensal de empréstimo) e quer converter pra outra unidade de tempo." },
+          { label: "Proporcional", desc: "conversão linear (multiplica/divide por 12) — é a lógica usada em juros simples." },
+          { label: "Equivalente", desc: "conversão geométrica (potência de 12) — é a lógica usada em juros compostos, e sempre dá um número um pouco diferente da proporcional." },
+        ]}
+      />
 
       <Botoes onCalcular={calcular} onLimpar={limpar} />
 
