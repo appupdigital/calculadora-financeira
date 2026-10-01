@@ -22,6 +22,7 @@ interface State {
   message: string | null;
   lastAction: string;
   lastX: number;
+  pontosEstatistica: [number, number][];
 }
 
 const ESTADO_INICIAL: State = {
@@ -38,6 +39,7 @@ const ESTADO_INICIAL: State = {
   message: null,
   lastAction: "Calculadora pronta. Digite um número e pressione ENTER.",
   lastX: 0,
+  pontosEstatistica: [],
 };
 
 type Acao =
@@ -60,6 +62,8 @@ type Acao =
   | { type: "tvm"; key: ChaveTVM }
   | { type: "shift"; which: "f" | "g" }
   | { type: "decorative"; msg: string }
+  | { type: "eex" }
+  | { type: "sigmaPlus" }
   | { type: "setDecimals"; n: number };
 
 function commit(s: State): State {
@@ -71,6 +75,78 @@ function commit(s: State): State {
 function lift(s: State): State {
   if (!s.liftStack) return s;
   return { ...s, stack: { x: s.stack.x, y: s.stack.x, z: s.stack.y, t: s.stack.z } };
+}
+
+// --- Amortização ---
+function amortizar(bal: number, i: number, pmt: number, cnt: number) {
+  let saldo = bal;
+  let juros = 0;
+  let principal = 0;
+  for (let k = 0; k < cnt; k++) {
+    const jurosK = saldo * i;
+    const principalK = -pmt - jurosK;
+    juros += jurosK;
+    principal += principalK;
+    saldo += jurosK + pmt;
+  }
+  return { juros, principal, saldoFinal: saldo };
+}
+
+// --- Depreciação ---
+function deprecSLCalc(custo: number, residual: number, vidaUtil: number, periodo: number) {
+  const dep = (custo - residual) / vidaUtil;
+  const valorContabil = custo - dep * periodo;
+  return { dep, valorContabil };
+}
+
+function deprecSOYDCalc(custo: number, residual: number, vidaUtil: number, periodo: number) {
+  const syd = (vidaUtil * (vidaUtil + 1)) / 2;
+  const base = custo - residual;
+  let acumulado = 0;
+  let depPeriodo = 0;
+  for (let k = 1; k <= periodo; k++) {
+    const depK = ((vidaUtil - k + 1) / syd) * base;
+    acumulado += depK;
+    if (k === periodo) depPeriodo = depK;
+  }
+  return { dep: depPeriodo, valorContabil: custo - acumulado };
+}
+
+function deprecDBCalc(custo: number, residual: number, vidaUtil: number, periodo: number, fatorPercentual: number) {
+  const taxa = (fatorPercentual > 0 ? fatorPercentual / 100 : 2) / vidaUtil;
+  let saldo = custo;
+  let depPeriodo = 0;
+  for (let k = 1; k <= periodo; k++) {
+    const depK = Math.min(saldo * taxa, saldo - residual);
+    saldo -= depK;
+    if (k === periodo) depPeriodo = depK;
+  }
+  return { dep: depPeriodo, valorContabil: saldo };
+}
+
+// --- Estatísticas ---
+function mediaEDesvio(valores: number[]) {
+  const n = valores.length;
+  const media = valores.reduce((a, b) => a + b, 0) / n;
+  if (n < 2) return { media, desvio: NaN };
+  const variancia = valores.reduce((acc, v) => acc + (v - media) ** 2, 0) / (n - 1);
+  return { media, desvio: Math.sqrt(variancia) };
+}
+
+function regressaoLinear(pontos: [number, number][]) {
+  const n = pontos.length;
+  const xs = pontos.map((p) => p[0]);
+  const ys = pontos.map((p) => p[1]);
+  const sumX = xs.reduce((a, b) => a + b, 0);
+  const sumY = ys.reduce((a, b) => a + b, 0);
+  const sumXY = pontos.reduce((acc, [x, y]) => acc + x * y, 0);
+  const sumX2 = xs.reduce((acc, x) => acc + x * x, 0);
+  const sumY2 = ys.reduce((acc, y) => acc + y * y, 0);
+  const b = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const a = (sumY - b * sumX) / n;
+  const r =
+    (n * sumXY - sumX * sumY) / Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+  return { a, b, r };
 }
 
 function reducer(state: State, acao: Acao): State {
@@ -121,6 +197,129 @@ function reducer(state: State, acao: Acao): State {
     if (shift === "f" && acao.type === "clx") {
       return { ...s, regs: {}, lastAction: "f CLEAR — registradores de memória (R0–R9) zerados" };
     }
+
+    if (shift === "f" && acao.type === "tvm" && acao.key === "n") {
+      const { n, i, pv, pmt } = s.tvm;
+      if (n === undefined || i === undefined || pv === undefined || pmt === undefined) {
+        return { ...s, message: "Error 4", lastAction: "AMORT precisa de n, i, PV e PMT preenchidos" };
+      }
+      const cnt = Math.round(s.stack.x) || 1;
+      const { juros, principal, saldoFinal } = amortizar(pv, i, pmt, cnt);
+      return {
+        ...s,
+        tvm: { ...s.tvm, pv: saldoFinal },
+        stack: { ...s.stack, x: principal, y: juros },
+        liftStack: true,
+        lastAction: `f AMORT (${cnt} parcela(s)) — principal = ${formatarVisor(principal, s.decimals)} (X), juros = ${formatarVisor(juros, s.decimals)} (Y), novo saldo PV = ${formatarVisor(saldoFinal, s.decimals)}`,
+      };
+    }
+
+    if (shift === "f" && acao.type === "percentTotal") {
+      const { n, pv, fv } = s.tvm;
+      if (n === undefined || pv === undefined || fv === undefined) {
+        return { ...s, message: "Error 4", lastAction: "Depreciação SL precisa de n (vida útil), PV (custo) e FV (valor residual)" };
+      }
+      const periodo = Math.round(s.stack.x) || 1;
+      const { dep, valorContabil } = deprecSLCalc(pv, fv, n, periodo);
+      return {
+        ...s,
+        stack: { ...s.stack, x: dep, y: valorContabil },
+        liftStack: true,
+        lastAction: `f SL — depreciação do período ${periodo} = ${formatarVisor(dep, s.decimals)} (X), valor contábil = ${formatarVisor(valorContabil, s.decimals)} (Y)`,
+      };
+    }
+
+    if (shift === "f" && acao.type === "deltaPercent") {
+      const { n, pv, fv } = s.tvm;
+      if (n === undefined || pv === undefined || fv === undefined) {
+        return { ...s, message: "Error 4", lastAction: "Depreciação SOYD precisa de n (vida útil), PV (custo) e FV (valor residual)" };
+      }
+      const periodo = Math.round(s.stack.x) || 1;
+      const { dep, valorContabil } = deprecSOYDCalc(pv, fv, n, periodo);
+      return {
+        ...s,
+        stack: { ...s.stack, x: dep, y: valorContabil },
+        liftStack: true,
+        lastAction: `f SOYD — depreciação do período ${periodo} = ${formatarVisor(dep, s.decimals)} (X), valor contábil = ${formatarVisor(valorContabil, s.decimals)} (Y)`,
+      };
+    }
+
+    if (shift === "f" && acao.type === "eex") {
+      const { n, pv, fv, i } = s.tvm;
+      if (n === undefined || pv === undefined || fv === undefined) {
+        return { ...s, message: "Error 4", lastAction: "Depreciação DB precisa de n (vida útil), PV (custo) e FV (valor residual)" };
+      }
+      const periodo = Math.round(s.stack.x) || 1;
+      const fator = i !== undefined ? i * 100 : 0; // reaproveita o registrador i como fator % (ex.: 200 = dobro da linear)
+      const { dep, valorContabil } = deprecDBCalc(pv, fv, n, periodo, fator);
+      return {
+        ...s,
+        stack: { ...s.stack, x: dep, y: valorContabil },
+        liftStack: true,
+        lastAction: `f DB — depreciação do período ${periodo} = ${formatarVisor(dep, s.decimals)} (X), valor contábil = ${formatarVisor(valorContabil, s.decimals)} (Y). Fator usado: ${fator > 0 ? fator.toFixed(0) + "%" : "200% (padrão)"}`,
+      };
+    }
+
+    if (shift === "g" && acao.type === "sigmaPlus") {
+      if (s.pontosEstatistica.length === 0) {
+        return { ...s, lastAction: "Σ− — não há pontos para remover" };
+      }
+      const novos = s.pontosEstatistica.slice(0, -1);
+      return {
+        ...s,
+        pontosEstatistica: novos,
+        stack: { ...s.stack, x: novos.length },
+        lastAction: `Σ− — último ponto removido (restam ${novos.length})`,
+      };
+    }
+
+    if (shift === "f" && acao.type === "digit" && acao.d === "1") {
+      if (s.pontosEstatistica.length === 0) {
+        return { ...s, message: "Error 3", lastAction: "x̄,ȳ precisa de pelo menos um ponto (Σ+)" };
+      }
+      const xs = s.pontosEstatistica.map((p) => p[0]);
+      const ys = s.pontosEstatistica.map((p) => p[1]);
+      const mx = mediaEDesvio(xs).media;
+      const my = mediaEDesvio(ys).media;
+      return {
+        ...s,
+        stack: { ...s.stack, x: mx, y: my },
+        liftStack: true,
+        lastAction: `f x̄,ȳ — média de x = ${formatarVisor(mx, s.decimals)} (X), média de y = ${formatarVisor(my, s.decimals)} (Y)`,
+      };
+    }
+
+    if (shift === "f" && acao.type === "digit" && acao.d === "2") {
+      if (s.pontosEstatistica.length < 2) {
+        return { ...s, message: "Error 3", lastAction: "s (desvio-padrão) precisa de pelo menos 2 pontos (Σ+)" };
+      }
+      const xs = s.pontosEstatistica.map((p) => p[0]);
+      const ys = s.pontosEstatistica.map((p) => p[1]);
+      const sx = mediaEDesvio(xs).desvio;
+      const sy = mediaEDesvio(ys).desvio;
+      return {
+        ...s,
+        stack: { ...s.stack, x: sx, y: sy },
+        liftStack: true,
+        lastAction: `f s — desvio-padrão amostral de x = ${formatarVisor(sx, s.decimals)} (X), de y = ${formatarVisor(sy, s.decimals)} (Y)`,
+      };
+    }
+
+    if (shift === "f" && acao.type === "digit" && acao.d === "3") {
+      if (s.pontosEstatistica.length < 2) {
+        return { ...s, message: "Error 3", lastAction: "ŷ,r precisa de pelo menos 2 pontos (Σ+)" };
+      }
+      const { a, b, r } = regressaoLinear(s.pontosEstatistica);
+      const xEstimado = s.stack.x;
+      const yEstimado = a + b * xEstimado;
+      return {
+        ...s,
+        stack: { ...s.stack, x: yEstimado, y: r },
+        liftStack: true,
+        lastAction: `f ŷ,r — para x=${formatarVisor(xEstimado, s.decimals)}: ŷ = ${formatarVisor(yEstimado, s.decimals)} (X), correlação r = ${formatarVisor(r, 4)} (Y)`,
+      };
+    }
+
     return {
       ...s,
       lastAction: "Essa função f/g é decorativa nesta simulação (reproduz o visual, não a função original da HP12C).",
@@ -339,6 +538,22 @@ function reducer(state: State, acao: Acao): State {
     case "decorative":
       return { ...s, lastAction: acao.msg };
 
+    case "eex":
+      return { ...s, lastAction: "EEX (notação científica) não implementada nesta simulação. Use f + EEX para depreciação DB." };
+
+    case "sigmaPlus": {
+      s = commit(s);
+      const ponto: [number, number] = [s.stack.x, s.stack.y];
+      const novos = [...s.pontosEstatistica, ponto];
+      return {
+        ...s,
+        pontosEstatistica: novos,
+        entering: false,
+        lastAction: `Σ+ — ponto (x=${formatarVisor(ponto[0], s.decimals)}, y=${formatarVisor(ponto[1], s.decimals)}) adicionado. Total: ${novos.length}`,
+        stack: { ...s.stack, x: novos.length },
+      };
+    }
+
     case "setDecimals":
       return { ...s, decimals: acao.n };
 
@@ -485,7 +700,7 @@ export default function HP12C() {
           <Key onClick={() => dispatch({ type: "inv" })} className={blackKey} f="YTM">1/x</Key>
           <Key onClick={() => dispatch({ type: "percentTotal" })} className={blackKey} f="SL" small>%T</Key>
           <Key onClick={() => dispatch({ type: "deltaPercent" })} className={blackKey} f="SOYD" small>Δ%</Key>
-          <Key onClick={() => dispatch({ type: "decorative", msg: "EEX (notação científica) não implementada nesta simulação." })} className={blackKey} f="DB" small>EEX</Key>
+          <Key onClick={() => dispatch({ type: "eex" })} className={blackKey} f="DB" small>EEX</Key>
           <Key onClick={() => dispatch({ type: "digit", d: "4" })} className={blackKey} g="D.MY" small>4</Key>
           <Key onClick={() => dispatch({ type: "digit", d: "5" })} className={blackKey} g="M.DY" small>5</Key>
           <Key onClick={() => dispatch({ type: "digit", d: "6" })} className={blackKey}>6</Key>
@@ -516,9 +731,9 @@ export default function HP12C() {
           <Key onClick={() => dispatch({ type: "rolldown" })} className={blackKey} small>R↓</Key>
           <Key onClick={() => dispatch({ type: "clx" })} className={blackKey} small>CLx</Key>
           <Key onClick={() => dispatch({ type: "swapxy" })} className={blackKey} small>x≷y</Key>
-          <Key onClick={() => dispatch({ type: "digit", d: "1" })} className={blackKey}>1</Key>
-          <Key onClick={() => dispatch({ type: "digit", d: "2" })} className={blackKey}>2</Key>
-          <Key onClick={() => dispatch({ type: "digit", d: "3" })} className={blackKey}>3</Key>
+          <Key onClick={() => dispatch({ type: "digit", d: "1" })} className={blackKey} f="x̄,ȳ" small>1</Key>
+          <Key onClick={() => dispatch({ type: "digit", d: "2" })} className={blackKey} f="s" small>2</Key>
+          <Key onClick={() => dispatch({ type: "digit", d: "3" })} className={blackKey} f="ŷ,r" small>3</Key>
           <Key onClick={() => dispatch({ type: "op", op: "-" })} className={blackKey}>−</Key>
 
           <Key onClick={() => dispatch({ type: "ac" })} className={blackKey} small>ON</Key>
@@ -528,7 +743,7 @@ export default function HP12C() {
           <Key onClick={() => dispatch({ type: "rclPrefix" })} className={blackKey} ativa={s.pendingPrefix === "RCL"} small>RCL</Key>
           <Key onClick={() => dispatch({ type: "digit", d: "0" })} className={blackKey}>0</Key>
           <Key onClick={() => dispatch({ type: "dot" })} className={blackKey}>.</Key>
-          <Key onClick={() => dispatch({ type: "decorative", msg: "Σ+ (estatísticas) não implementada nesta simulação." })} className={blackKey} small>Σ+</Key>
+          <Key onClick={() => dispatch({ type: "sigmaPlus" })} className={blackKey} g="Σ−" small>Σ+</Key>
           <Key onClick={() => dispatch({ type: "op", op: "+" })} className={blackKey}>+</Key>
         </div>
 
@@ -592,7 +807,7 @@ export default function HP12C() {
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1.5">
           Registradores de memória (STO / RCL)
         </p>
-        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10">
+        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10 mb-3">
           {Array.from({ length: 10 }, (_, i) => String(i)).map((k) => (
             <div key={k} className="rounded-lg bg-slate-50 dark:bg-slate-800 px-1.5 py-1 text-center">
               <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500">R{k}</div>
@@ -602,6 +817,26 @@ export default function HP12C() {
             </div>
           ))}
         </div>
+
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1.5">
+          Pontos estatísticos (Σ+)
+        </p>
+        {s.pontosEstatistica.length === 0 ? (
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            Nenhum ponto ainda. Digite y ENTER x e pressione Σ+ para acumular.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {s.pontosEstatistica.map(([x, y], idx) => (
+              <span
+                key={idx}
+                className="text-[10px] font-mono bg-slate-50 dark:bg-slate-800 rounded px-1.5 py-0.5 text-slate-600 dark:text-slate-300"
+              >
+                ({formatarVisor(x, 1)}, {formatarVisor(y, 1)})
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

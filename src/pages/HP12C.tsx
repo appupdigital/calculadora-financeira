@@ -118,9 +118,67 @@ export default function HP12CPage() {
               <li><b className="font-mono">g</b> então <b className="font-mono">ENTER</b> (LSTx) — recupera o valor de X de antes da última operação</li>
             </ul>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
-              As demais funções em laranja/azul (AMORT, bônus, depreciação, estatísticas, programação...)
-              aparecem só para deixar o visual fiel à calculadora original — nesta simulação elas não fazem
-              cálculo, só mostram um aviso.
+              As funções de <b>bônus (PRICE/YTM)</b> e <b>programação (R/S, SST, GTO...)</b> aparecem só
+              para deixar o visual fiel à calculadora original — nesta simulação elas não fazem cálculo, só
+              mostram um aviso. Bônus exigiria convenções de contagem de dias muito específicas, e
+              programação precisaria de um editor de programa inteiro — fora do foco de um site de estudo
+              de matemática financeira.
+            </p>
+          </section>
+
+          <section className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 p-4 sm:p-5">
+            <h2 className="font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-2">
+              <span>🏦</span> AMORT — tabela de amortização
+            </h2>
+            <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
+              Com <b>n, i, PV e PMT</b> já guardados (o mesmo empréstimo que você monta com as teclas
+              financeiras), digite a quantidade de parcelas a amortizar e pressione <b>f</b> então{" "}
+              <b className="font-mono">n</b> (AMORT).
+            </p>
+            <div className="font-mono text-xs bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900 rounded-lg px-3 py-2 space-y-0.5">
+              <div>1 &nbsp;f&nbsp; n &nbsp;→&nbsp; amortiza 1 parcela</div>
+              <div>X = principal pago &nbsp;·&nbsp; Y = juros pagos &nbsp;·&nbsp; PV é atualizado para o novo saldo devedor</div>
+            </div>
+            <p className="text-sm text-slate-700 dark:text-slate-300 mt-2">
+              Repita quantas vezes quiser — a cada f + n, a calculadora amortiza a partir do saldo (PV) que
+              ficou da vez anterior, exatamente como uma tabela de amortização período a período.
+            </p>
+          </section>
+
+          <section className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 p-4 sm:p-5">
+            <h2 className="font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-2">
+              <span>📉</span> Depreciação — SL, SOYD e DB
+            </h2>
+            <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
+              Guarde <b>n</b> (vida útil, em anos), <b>PV</b> (custo do bem) e <b>FV</b> (valor residual).
+              Depois digite o número do período (ano) e pressione a combinação:
+            </p>
+            <ul className="text-sm text-slate-700 dark:text-slate-300 space-y-1 font-mono">
+              <li><b>f %T</b> — depreciação linear (SL)</li>
+              <li><b>f Δ%</b> — soma dos dígitos dos anos (SOYD)</li>
+              <li><b>f EEX</b> — saldos decrescentes (DB) — opcionalmente guarde um fator em <b>i</b> (ex.: 200 para o dobro da taxa linear; se deixar vazio, usa 200% por padrão)</li>
+            </ul>
+            <p className="text-sm text-slate-700 dark:text-slate-300 mt-2">
+              O resultado mostra, em X, a depreciação daquele período e, em Y, o valor contábil (o que
+              resta do bem) depois dele.
+            </p>
+          </section>
+
+          <section className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 p-4 sm:p-5">
+            <h2 className="font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-2">
+              <span>📊</span> Estatísticas — Σ+, média, desvio e regressão
+            </h2>
+            <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
+              Para cada par de dados, digite <b>y ENTER x</b> e pressione <b className="font-mono">Σ+</b>{" "}
+              (acumula; <b>g Σ+</b> remove o último ponto digitado). Depois:
+            </p>
+            <ul className="text-sm text-slate-700 dark:text-slate-300 space-y-1 font-mono">
+              <li><b>f 1</b> (x̄,ȳ) — médias de x (X) e de y (Y)</li>
+              <li><b>f 2</b> (s) — desvio-padrão amostral de x (X) e de y (Y)</li>
+              <li><b>f 3</b> (ŷ,r) — digite um x, calcula a estimativa ŷ pela reta de regressão (X) e o coeficiente de correlação r (Y)</li>
+            </ul>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+              Os pontos acumulados aparecem no painel abaixo da calculadora.
             </p>
           </section>
 
