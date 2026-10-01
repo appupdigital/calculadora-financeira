@@ -6,9 +6,20 @@ function regraClasses(tipo?: "boa" | "ruim" | "info") {
   return "text-slate-500 dark:text-slate-400";
 }
 
+function borderAccent(tipo?: "boa" | "ruim" | "info") {
+  if (tipo === "boa") return "border-l-emerald-400 dark:border-l-emerald-600";
+  if (tipo === "ruim") return "border-l-rose-400 dark:border-l-rose-600";
+  return "border-l-violet-300 dark:border-l-violet-700";
+}
+
 export default function FormulaCard({ f }: { f: Formula }) {
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-sm">
+    <div
+      className={
+        "rounded-xl border border-l-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-sm " +
+        borderAccent(f.regraTipo)
+      }
+    >
       <div className="flex items-baseline justify-between gap-3 mb-2">
         <h3 className="font-semibold text-slate-900 dark:text-slate-100">{f.nome}</h3>
         {f.sigla && (

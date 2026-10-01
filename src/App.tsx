@@ -2,6 +2,7 @@ import { useState } from "react";
 import Calculadora from "./pages/Calculadora";
 import Formulas from "./pages/Formulas";
 import CalculatorIcon from "./components/CalculatorIcon";
+import BottomNav from "./components/BottomNav";
 
 type Aba = "calc" | "formulas";
 
@@ -18,10 +19,10 @@ export default function App() {
               Calculadora Financeira
             </span>
           </div>
-          <nav className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 shrink-0">
+          <nav className="hidden sm:flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 shrink-0">
             <button
               onClick={() => setAba("calc")}
-              className={`min-h-9 px-3 py-2 rounded-md text-xs sm:text-sm font-semibold transition ${
+              className={`min-h-9 px-3 py-2 rounded-md text-sm font-semibold transition ${
                 aba === "calc"
                   ? "bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 shadow-sm"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -31,7 +32,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setAba("formulas")}
-              className={`min-h-9 px-3 py-2 rounded-md text-xs sm:text-sm font-semibold transition ${
+              className={`min-h-9 px-3 py-2 rounded-md text-sm font-semibold transition ${
                 aba === "formulas"
                   ? "bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 shadow-sm"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -43,11 +44,13 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 safe-x">{aba === "calc" ? <Calculadora /> : <Formulas />}</main>
+      <main className="flex-1 safe-x pb-20 sm:pb-0">{aba === "calc" ? <Calculadora /> : <Formulas />}</main>
 
-      <footer className="safe-x safe-bottom max-w-5xl mx-auto w-full px-4 py-8 text-center text-xs text-slate-400 dark:text-slate-600">
+      <footer className="hidden sm:block safe-x max-w-5xl mx-auto w-full px-4 py-8 text-center text-xs text-slate-400 dark:text-slate-600">
         Feito para estudo de matemática financeira · Calculadora de VPL, TIR, Payback, IL e índices financeiros.
       </footer>
+
+      <BottomNav aba={aba} onChange={setAba} />
     </div>
   );
 }

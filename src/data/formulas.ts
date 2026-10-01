@@ -15,6 +15,7 @@ export interface Formula {
 export interface Categoria {
   id: string;
   titulo: string;
+  icone: string;
   formulas: Formula[];
 }
 
@@ -22,6 +23,7 @@ export const categorias: Categoria[] = [
   {
     id: "av-ah",
     titulo: "Análise Vertical e Horizontal",
+    icone: "📊",
     formulas: [
       {
         nome: "Análise Vertical",
@@ -45,6 +47,7 @@ export const categorias: Categoria[] = [
   },
   {
     id: "estrutura",
+    icone: "🏛️",
     titulo: "A) Índices de Estrutura de Capital",
     formulas: [
       {
@@ -96,6 +99,7 @@ export const categorias: Categoria[] = [
   },
   {
     id: "liquidez",
+    icone: "💧",
     titulo: "B) Índices de Liquidez",
     formulas: [
       {
@@ -149,6 +153,7 @@ export const categorias: Categoria[] = [
   },
   {
     id: "lucratividade",
+    icone: "💰",
     titulo: "C) Índices de Lucratividade e Desempenho",
     formulas: [
       {
@@ -210,6 +215,7 @@ export const categorias: Categoria[] = [
   },
   {
     id: "prazos",
+    icone: "⏱️",
     titulo: "D) Índices de Prazos Médios",
     formulas: [
       {
@@ -252,6 +258,7 @@ export const categorias: Categoria[] = [
   },
   {
     id: "ciclos",
+    icone: "🔄",
     titulo: "Ciclo Operacional e Ciclo Financeiro",
     formulas: [
       {
@@ -278,6 +285,7 @@ export const categorias: Categoria[] = [
   },
   {
     id: "investimentos",
+    icone: "📈",
     titulo: "Técnicas de Análise de Investimentos",
     formulas: [
       {
