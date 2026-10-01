@@ -9,6 +9,7 @@ import {
 } from "../lib/finance";
 import { digitsToNumber } from "../lib/mask";
 import MaskedInput from "../components/MaskedInput";
+import PeriodoInput, { type UnidadePeriodo } from "../components/PeriodoInput";
 
 function OutBox({
   label,
@@ -395,16 +396,20 @@ function CalculadoraJuros() {
   const [pv, setPv] = useState("");
   const [taxa, setTaxa] = useState("");
   const [n, setN] = useState("");
+  const [unidade, setUnidade] = useState<UnidadePeriodo>("anos");
   const [resultado, setResultado] = useState<ReturnType<typeof calcularJuros> | null>(null);
 
   function calcular() {
-    setResultado(calcularJuros(digitsToNumber(pv), digitsToNumber(taxa) / 100, digitsToNumber(n, 0)));
+    const periodos = digitsToNumber(n, 0);
+    const periodosEmAnos = unidade === "meses" ? periodos / 12 : periodos;
+    setResultado(calcularJuros(digitsToNumber(pv), digitsToNumber(taxa) / 100, periodosEmAnos));
   }
 
   function limpar() {
     setPv("");
     setTaxa("");
     setN("");
+    setUnidade("anos");
     setResultado(null);
   }
 
@@ -415,8 +420,14 @@ function CalculadoraJuros() {
     >
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
         <MaskedInput label="Capital inicial (PV)" digits={pv} onChange={setPv} prefixo="R$" />
-        <MaskedInput label="Taxa (i por período)" digits={taxa} onChange={setTaxa} sufixo="%" />
-        <MaskedInput label="Número de períodos (n)" digits={n} onChange={setN} casas={0} />
+        <MaskedInput label="Taxa (i ao ano)" digits={taxa} onChange={setTaxa} sufixo="%" />
+        <PeriodoInput
+          label="Número de períodos (n)"
+          digits={n}
+          onChange={setN}
+          unidade={unidade}
+          onUnidadeChange={setUnidade}
+        />
       </div>
 
       <Botoes onCalcular={calcular} onLimpar={limpar} />
@@ -452,9 +463,6 @@ export default function Calculadora() {
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-1">
           🧮 Calculadora Financeira
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base">
-          Escolha um modelo abaixo. Os valores são digitados no formato contábil (como no Excel).
-        </p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
