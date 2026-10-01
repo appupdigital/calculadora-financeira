@@ -1,10 +1,11 @@
 import { useState } from "react";
 import Calculadora from "./pages/Calculadora";
 import Formulas from "./pages/Formulas";
+import HP12CPage from "./pages/HP12C";
 import CalculatorIcon from "./components/CalculatorIcon";
 import BottomNav from "./components/BottomNav";
 
-type Aba = "calc" | "formulas";
+type Aba = "calc" | "formulas" | "hp12c";
 
 export default function App() {
   const [aba, setAba] = useState<Aba>("calc");
@@ -40,11 +41,23 @@ export default function App() {
             >
               Fórmulas
             </button>
+            <button
+              onClick={() => setAba("hp12c")}
+              className={`min-h-9 px-3 py-2 rounded-md text-sm font-semibold transition ${
+                aba === "hp12c"
+                  ? "bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              }`}
+            >
+              HP 12C
+            </button>
           </nav>
         </div>
       </header>
 
-      <main className="flex-1 safe-x pb-20 sm:pb-0">{aba === "calc" ? <Calculadora /> : <Formulas />}</main>
+      <main className="flex-1 safe-x pb-20 sm:pb-0">
+        {aba === "calc" ? <Calculadora /> : aba === "formulas" ? <Formulas /> : <HP12CPage />}
+      </main>
 
       <footer className="hidden sm:block safe-x max-w-5xl mx-auto w-full px-4 py-8 text-center text-xs text-slate-400 dark:text-slate-600">
         Feito para estudo de matemática financeira · Calculadora de VPL, TIR, Payback, IL e índices financeiros.
